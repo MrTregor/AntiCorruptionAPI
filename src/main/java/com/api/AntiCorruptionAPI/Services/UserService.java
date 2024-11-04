@@ -48,7 +48,7 @@ public class UserService {
             if (user.isPresent()) {
                 userRepository.deleteById(id);
                 logger.info("User  deleted successfully: {}", id);
-                return new ServiceResponse<>(null, "User  deleted successfully", HttpStatus.NO_CONTENT);
+                return new ServiceResponse<>(null, "User  deleted successfully", HttpStatus.OK);
             } else {
                 logger.warn("Attempt to delete non-existent user: {}", id);
                 return new ServiceResponse<>(null, "User  not found", HttpStatus.NOT_FOUND);

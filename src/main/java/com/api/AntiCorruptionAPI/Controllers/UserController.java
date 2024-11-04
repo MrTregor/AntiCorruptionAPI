@@ -36,7 +36,7 @@ public class UserController {
         }
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     @PreAuthorize("hasAuthority('DeleteUsers')")  // Добавлено разрешение на удаление
     public ResponseEntity<ServiceResponse<Void>> deleteUser(@PathVariable("id") long id) {
         try {
