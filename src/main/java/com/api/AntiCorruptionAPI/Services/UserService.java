@@ -1,13 +1,16 @@
 package com.api.AntiCorruptionAPI.Services;
 
+import com.api.AntiCorruptionAPI.Models.AccessGroup;
 import com.api.AntiCorruptionAPI.Models.User;
 import com.api.AntiCorruptionAPI.Reponses.ServiceResponse;
+import com.api.AntiCorruptionAPI.Repositories.AccessGroupRepository;
 import com.api.AntiCorruptionAPI.Repositories.UserRepository;
 import com.api.AntiCorruptionAPI.Requests.UserUpdateRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,6 +25,8 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AccessGroupRepository accessGroupRepository;
 
     // Метод для добавления пользователя
     public ServiceResponse<User> addUser (User user) {
@@ -93,5 +98,18 @@ public class UserService {
             logger.error("Unexpected error while updating user", e);
             return new ServiceResponse<>(null, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    public ServiceResponse<User> addUserToGroup(Long userId, Long groupId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        AccessGroup group = accessGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Access group not found"));
+
+        user.getGroups().add(group);
+        User updatedUser = userRepository.save(user);
+
+        return new ServiceResponse<>(updatedUser, "User added to group successfully", HttpStatus.OK);
     }
 }

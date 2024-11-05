@@ -2,6 +2,7 @@ package com.api.AntiCorruptionAPI.Controllers;
 
 import com.api.AntiCorruptionAPI.Models.User;
 import com.api.AntiCorruptionAPI.Reponses.ServiceResponse;
+import com.api.AntiCorruptionAPI.Requests.AddToGroupRequest;
 import com.api.AntiCorruptionAPI.Requests.UserUpdateRequest;
 import com.api.AntiCorruptionAPI.Services.UserService;
 import org.slf4j.Logger;
@@ -63,6 +64,21 @@ public class UserController {
             return new ResponseEntity<>(new ServiceResponse<>(null, e.getReason(), (HttpStatus) e.getStatusCode()), e.getStatusCode());
         } catch (Exception e) {
             logger.error("Unexpected error while updating user", e);
+            return new ResponseEntity<>(new ServiceResponse<>(null, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/add-to-group")
+    @PreAuthorize("hasAuthority('ManageUserGroups')")
+    public ResponseEntity<ServiceResponse<User>> addUserToGroup(@RequestBody AddToGroupRequest request) {
+        try {
+            ServiceResponse<User> response = userService.addUserToGroup(request.getUserId(), request.getGroupId());
+            return new ResponseEntity<>(response, response.status());
+        } catch (ResponseStatusException e) {
+            logger.error("Failed to add user to group", e);
+            return new ResponseEntity<>(new ServiceResponse<>(null, e.getReason(), (HttpStatus) e.getStatusCode()), e.getStatusCode());
+        } catch (Exception e) {
+            logger.error("Unexpected error while adding user to group", e);
             return new ResponseEntity<>(new ServiceResponse<>(null, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
