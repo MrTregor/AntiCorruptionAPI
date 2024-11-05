@@ -82,4 +82,30 @@ public class ReportService {
             return new ServiceResponse<>(null, "Report not found", HttpStatus.NOT_FOUND);
         }
     }
+
+
+
+    public ServiceResponse<List<Report>> getReportsByAssignedTo(Long assignedTo) {
+        try {
+            List<Report> reports = reportRepository.findByAssignedTo(assignedTo);
+            if (reports.isEmpty()) {
+                return new ServiceResponse<>(
+                        null,
+                        "No reports found for the assigned user.",
+                        HttpStatus.NOT_FOUND
+                );
+            }
+            return new ServiceResponse<>(
+                    reports,
+                    "Reports retrieved successfully.",
+                    HttpStatus.OK
+            );
+        } catch (Exception e) {
+            return new ServiceResponse<>(
+                    null,
+                    "Error retrieving reports: " + e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
 }

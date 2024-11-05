@@ -111,4 +111,9 @@ public class UserService {
 
         return new ServiceResponse<>(updatedUser, "User added to group successfully", HttpStatus.OK);
     }
+
+    public Long getUserIdByUsername(String username) {
+        Optional<User> user = userRepository.findByUsername(username);
+        return user.map(User::getId).orElse(null);
+    }
 }
