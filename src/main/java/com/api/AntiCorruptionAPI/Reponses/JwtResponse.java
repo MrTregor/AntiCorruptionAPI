@@ -1,8 +1,12 @@
 package com.api.AntiCorruptionAPI.Reponses;
 
+import lombok.Getter;
+
 import java.util.List;
 
+@Getter
 public class JwtResponse {
+    // Getters
     private String token;
     private Long id;
     private String username;
@@ -15,20 +19,4 @@ public class JwtResponse {
         this.roles = roles;
     }
 
-    // Getters
-    public String getToken() {
-        return token;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public List<String> getRoles() {
-        return roles;
-    }
 }

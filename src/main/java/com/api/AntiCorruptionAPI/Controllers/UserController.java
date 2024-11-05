@@ -2,6 +2,7 @@ package com.api.AntiCorruptionAPI.Controllers;
 
 import com.api.AntiCorruptionAPI.Models.User;
 import com.api.AntiCorruptionAPI.Reponses.ServiceResponse;
+import com.api.AntiCorruptionAPI.Requests.UserUpdateRequest;
 import com.api.AntiCorruptionAPI.Services.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +27,7 @@ public class UserController {
     public ResponseEntity<ServiceResponse<User>> addUser(@RequestBody User user) {
         try {
             ServiceResponse<User> response = userService.addUser (user);
-            return new ResponseEntity<>(response, response.getStatus());
+            return new ResponseEntity<>(response, response.status());
         } catch (ResponseStatusException e) {
             logger.error("Failed to add user", e);
             return new ResponseEntity<>(null, e.getStatusCode());
@@ -41,13 +42,28 @@ public class UserController {
     public ResponseEntity<ServiceResponse<Void>> deleteUser(@PathVariable("id") long id) {
         try {
             ServiceResponse<Void> response = userService.deleteUser(id);
-            return new ResponseEntity<>(response, response.getStatus());
+            return new ResponseEntity<>(response, response.status());
         } catch (ResponseStatusException e) {
             logger.error("Failed to delete user", e);
             return new ResponseEntity<>(e.getStatusCode());
         } catch (Exception e) {
             logger.error("Unexpected error while deleting user", e);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PutMapping("/update/{id}")
+    @PreAuthorize("hasAuthority('UpdateUsers')")
+    public ResponseEntity<ServiceResponse<User>> updateUser(@PathVariable("id") long id, @RequestBody UserUpdateRequest userUpdateRequest) {
+        try {
+            ServiceResponse<User> response = userService.updateUser(id, userUpdateRequest);
+            return new ResponseEntity<>(response, response.status());
+        } catch (ResponseStatusException e) {
+            logger.error("Failed to update user", e);
+            return new ResponseEntity<>(new ServiceResponse<>(null, e.getReason(), (HttpStatus) e.getStatusCode()), e.getStatusCode());
+        } catch (Exception e) {
+            logger.error("Unexpected error while updating user", e);
+            return new ResponseEntity<>(new ServiceResponse<>(null, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
