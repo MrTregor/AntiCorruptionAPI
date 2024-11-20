@@ -25,13 +25,4 @@ public class AccessGroupService {
                 HttpStatus.OK
         );
     }
-
-    public ServiceResponse<AccessGroup> createAccessGroup(AccessGroup accessGroup) {
-        AccessGroup savedGroup = accessGroupRepository.save(accessGroup);
-        return new ServiceResponse<>(
-                savedGroup,
-                "Access group created successfully",
-                HttpStatus.CREATED
-        );
-    }
 }

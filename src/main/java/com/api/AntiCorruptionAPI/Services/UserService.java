@@ -147,8 +147,6 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Access group not found"));
 
         user.getGroups().add(group);
-        User updatedUser = userRepository.save(user);
-
         return new ServiceResponse<>(null, "User added to group successfully", HttpStatus.OK);
     }
 

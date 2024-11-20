@@ -46,10 +46,6 @@ public class JwtUtils {
         return Jwts.parserBuilder().setSigningKey(key()).build()
                 .parseClaimsJws(token).getBody().getSubject();
     }
-    public String getUserIdFromJwtToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(key()).build()
-                .parseClaimsJws(token).getBody().get("user_id").toString();
-    }
 
     // Добавляем новый метод для получения ID пользователя
     public Long getUserIdFromToken(String token) {
