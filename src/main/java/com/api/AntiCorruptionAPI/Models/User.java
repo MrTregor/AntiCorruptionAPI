@@ -3,6 +3,8 @@ package com.api.AntiCorruptionAPI.Models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Date;
@@ -27,9 +29,7 @@ public class User {
 
     // Группы доступа, к которым принадлежит пользователь
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "user_groups",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "group_id"))
+    @JoinTable(name = "user_groups", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "group_id"))
     private Set<AccessGroup> groups = new HashSet<>();
 
     // Табельный номер сотрудника
@@ -91,5 +91,7 @@ public class User {
     private String notes;                  // Примечания
 
     // Статус сотрудника
+    @Column(nullable = false)
+    @ColumnDefault("false")
     private Boolean isFired;          // Признак увольнения
 }

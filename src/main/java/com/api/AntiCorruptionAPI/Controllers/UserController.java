@@ -1,7 +1,7 @@
 package com.api.AntiCorruptionAPI.Controllers;
 
 import com.api.AntiCorruptionAPI.Models.User;
-import com.api.AntiCorruptionAPI.Reponses.ServiceResponse;
+import com.api.AntiCorruptionAPI.Responses.ServiceResponse;
 import com.api.AntiCorruptionAPI.Requests.AddToGroupRequest;
 import com.api.AntiCorruptionAPI.Requests.UserUpdateRequest;
 import com.api.AntiCorruptionAPI.Services.UserService;
@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -27,7 +29,7 @@ public class UserController {
     @PreAuthorize("hasAuthority('AddUsers')")
     public ResponseEntity<ServiceResponse<User>> addUser(@RequestBody User user) {
         try {
-            ServiceResponse<User> response = userService.addUser (user);
+            ServiceResponse<User> response = userService.addUser(user);
             return new ResponseEntity<>(response, response.status());
         } catch (ResponseStatusException e) {
             logger.error("Failed to add user", e);
@@ -80,6 +82,76 @@ public class UserController {
         } catch (Exception e) {
             logger.error("Unexpected error while adding user to group", e);
             return new ResponseEntity<>(new ServiceResponse<>(null, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+
+    @GetMapping
+    @PreAuthorize("hasAuthority('ManageUserGroups')")
+    public ResponseEntity<ServiceResponse<List<User>>> getAllUsers() {
+        try {
+            ServiceResponse<List<User>> response = userService.getAllUsers();
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error retrieving users", e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ServiceResponse<>(
+                            null,
+                            "An error occurred while retrieving users",
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                    ));
+        }
+    }
+
+    @DeleteMapping("/remove-from-group")
+    @PreAuthorize("hasAuthority('ManageUserGroups')")
+    public ResponseEntity<ServiceResponse<User>> removeUserFromGroup(
+            @RequestBody AddToGroupRequest request) {
+        try {
+            ServiceResponse<User> response = userService.removeUserFromGroup(
+                    request.getUserId(),
+                    request.getGroupId()
+            );
+            return new ResponseEntity<>(response, response.status());
+        } catch (ResponseStatusException e) {
+            logger.error("Failed to remove user from group", e);
+            return new ResponseEntity<>(
+                    new ServiceResponse<>(
+                            null,
+                            e.getReason(),
+                            (HttpStatus) e.getStatusCode()
+                    ),
+                    e.getStatusCode()
+            );
+        } catch (Exception e) {
+            logger.error("Unexpected error while removing user from group", e);
+            return new ResponseEntity<>(
+                    new ServiceResponse<>(
+                            null,
+                            "An unexpected error occurred",
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                    ),
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    @GetMapping("/get-agents")
+    @PreAuthorize("hasAuthority('AssignProcessReport')")
+    public ResponseEntity<ServiceResponse<List<User>>> getUsersInSolveReportGroup() {
+        try {
+            ServiceResponse<List<User>> response = userService.getUsersByGroup("SolveReport");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error retrieving users in SolveReport group", e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ServiceResponse<>(
+                            null,
+                            "An error occurred while retrieving users",
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                    ));
         }
     }
 }

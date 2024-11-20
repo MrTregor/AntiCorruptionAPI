@@ -1,9 +1,11 @@
 package com.api.AntiCorruptionAPI.Requests;
 
+import com.api.AntiCorruptionAPI.Models.AccessGroup;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Date;
+import java.util.List;
 
 @Getter
 @Setter
@@ -44,4 +46,6 @@ public class UserUpdateRequest {
     private String emergencyContact;
     private String notes;
     private Boolean isFired;
+
+    private List<AccessGroup> groups; // Список групп доступа
 }

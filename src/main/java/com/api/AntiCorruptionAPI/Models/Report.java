@@ -22,13 +22,9 @@ public class Report {
     @Column(name = "date_submitted", nullable = false)
     private LocalDateTime dateSubmitted;
 
-    // Имя заявителя (может быть анонимным)
-    @Column(name = "reporter_name")
-    private String reporterName;
-
-    // Контактные данные заявителя (например, телефон или email)
-    @Column(name = "reporter_contact")
-    private String reporterContact;
+    // Заменяем reporter_name и reporter_contact на reporter_id
+    @Column(name = "reporter_id", nullable = false)
+    private Long reporterId;
 
     // Дата предполагаемого нарушения
     @Column(name = "incident_date")

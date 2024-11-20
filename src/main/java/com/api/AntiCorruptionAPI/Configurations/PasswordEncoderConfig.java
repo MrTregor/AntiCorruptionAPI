@@ -1,4 +1,4 @@
-package com.api.AntiCorruptionAPI;
+package com.api.AntiCorruptionAPI.Configurations;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

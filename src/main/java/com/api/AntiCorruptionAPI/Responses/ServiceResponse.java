@@ -1,4 +1,4 @@
-package com.api.AntiCorruptionAPI.Reponses;
+package com.api.AntiCorruptionAPI.Responses;
 
 import org.springframework.http.HttpStatus;
 

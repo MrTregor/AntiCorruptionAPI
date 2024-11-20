@@ -1,4 +1,4 @@
-package com.api.AntiCorruptionAPI;
+package com.api.AntiCorruptionAPI.Components;
 
 import com.api.AntiCorruptionAPI.Models.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -20,12 +20,12 @@ public class UserDetailsImpl implements UserDetails {
     @Getter
     private Long id;
 
-    private String username;
+    private final String username;
 
     @JsonIgnore
     private String password;
 
-    private Collection<? extends GrantedAuthority> authorities;
+    private final Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsImpl(Long id, String username, String password,
                            Collection<? extends GrantedAuthority> authorities) {

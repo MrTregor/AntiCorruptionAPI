@@ -1,4 +1,4 @@
-package com.api.AntiCorruptionAPI;
+package com.api.AntiCorruptionAPI.Components;
 
 import com.api.AntiCorruptionAPI.Services.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
@@ -42,7 +42,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e);
+            logger.error("Cannot set user authentication: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);

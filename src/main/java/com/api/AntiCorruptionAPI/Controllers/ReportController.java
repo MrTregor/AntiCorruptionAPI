@@ -1,11 +1,14 @@
 package com.api.AntiCorruptionAPI.Controllers;
 
 import com.api.AntiCorruptionAPI.Models.Report;
-import com.api.AntiCorruptionAPI.Reponses.ServiceResponse;
-import com.api.AntiCorruptionAPI.SecurityUtils;
+import com.api.AntiCorruptionAPI.Models.ReportDTO;
+import com.api.AntiCorruptionAPI.Responses.ServiceResponse;
+import com.api.AntiCorruptionAPI.Components.SecurityUtils;
 import com.api.AntiCorruptionAPI.Services.ReportService;
 import com.api.AntiCorruptionAPI.Services.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,8 +16,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -70,18 +75,18 @@ public class ReportController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('ViewReport')")
-    public ResponseEntity<ServiceResponse<List<Report>>> getAllReports() {
+    public ResponseEntity<ServiceResponse<List<ReportDTO>>> getAllReports() {
         if (securityUtils.isUserInViewAllReportsGroup()) {
-            ServiceResponse<List<Report>> response = reportService.getAllReports();
+            ServiceResponse<List<ReportDTO>> response = reportService.getAllReports();
             return new ResponseEntity<>(response, response.status());
         } else {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String username = authentication.getName();
             Long userId = userService.getUserIdByUsername(username);
             if (userId == null) {
-                return new ResponseEntity<>(new ServiceResponse<>(null, "User not found", HttpStatus.NOT_FOUND), HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>(new ServiceResponse<>(null, "User  not found", HttpStatus.NOT_FOUND), HttpStatus.NOT_FOUND);
             }
-            ServiceResponse<List<Report>> response = reportService.getReportsByAssignedTo(userId);
+            ServiceResponse<List<ReportDTO>> response = reportService.getReportsByAssignedTo(userId);
             return new ResponseEntity<>(response, response.status());
         }
     }
@@ -105,6 +110,49 @@ public class ReportController {
         ServiceResponse<Report> response = reportService.updateReport(id, report);
         return new ResponseEntity<>(response, response.status());
     }
+
+    @PatchMapping("/{id}/solution")
+    @PreAuthorize("hasAuthority('SolveReport')")
+    public ResponseEntity<ServiceResponse<Report>> updateSolution(
+            @PathVariable Long id,
+            @RequestBody String solution) {
+
+        // Получаем существующий отчет
+        ServiceResponse<Report> existingReport = reportService.getReport(id);
+        if (existingReport.data() == null) {
+            return new ResponseEntity<>(
+                    new ServiceResponse<>(null, existingReport.message(), existingReport.status()),
+                    existingReport.status()
+            );
+        }
+
+        // Обновляем решение
+        existingReport.data().setSolution(solution);
+        ServiceResponse<Report> response = reportService.updateReport(id, existingReport.data());
+        return new ResponseEntity<>(response, response.status());
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('SolveReport')")
+    public ResponseEntity<ServiceResponse<Report>> updateStatus(
+            @PathVariable Long id,
+            @RequestBody Report.ReportStatus status) {
+
+        // Получаем существующий отчет
+        ServiceResponse<Report> existingReport = reportService.getReport(id);
+        if (existingReport.data() == null) {
+            return new ResponseEntity<>(
+                    new ServiceResponse<>(null, existingReport.message(), existingReport.status()),
+                    existingReport.status()
+            );
+        }
+
+        // Обновляем статус
+        existingReport.data().setStatus(status);
+        ServiceResponse<Report> response = reportService.updateReport(id, existingReport.data());
+        return new ResponseEntity<>(response, response.status());
+    }
+
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('DeleteReport')")
@@ -139,10 +187,44 @@ public class ReportController {
     }
 
     // Новый метод для назначения сотрудника для обработки сообщения
-    @PutMapping("/{id}/assign")
+    @PatchMapping("/{id}/assign")
     @PreAuthorize("hasAuthority('AssignProcessReport')")
     public ResponseEntity<ServiceResponse<Report>> assignReport(@PathVariable Long id, @RequestParam Long assignedTo) {
         ServiceResponse<Report> response = reportService.assignReport(id, assignedTo);
+        return new ResponseEntity<>(response, response.status());
+    }
+
+    @GetMapping("/filter")
+    @PreAuthorize("hasAuthority('ViewReport')")
+    public ResponseEntity<ServiceResponse<List<ReportDTO>>> filterReports(
+            @RequestParam(required = false) Long reporterId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startIncidentDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endIncidentDate,
+            @RequestParam(required = false) String incidentLocation,
+            @RequestParam(required = false) String involvedPersons,
+            @RequestParam(required = false) Report.ReportStatus status,
+            @RequestParam(required = false) Long assignedTo
+    ) {
+        // Проверка доступа к фильтрации
+        if (!securityUtils.isUserInViewAllReportsGroup()) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+
+            // Если пользователь не может видеть все отчеты,
+            // то фильтрация только по его собственным отчетам
+            reporterId = userService.getUserIdByUsername(username);
+        }
+
+        ServiceResponse<List<ReportDTO>> response = reportService.filterReports(
+                reporterId,
+                startIncidentDate,
+                endIncidentDate,
+                incidentLocation,
+                involvedPersons,
+                status,
+                assignedTo
+        );
+
         return new ResponseEntity<>(response, response.status());
     }
 }

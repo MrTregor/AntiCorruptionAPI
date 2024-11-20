@@ -6,13 +6,8 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class RegisterRequest {
-
-    // Getters and Setters
+public class UpdatePasswordRequest {
     @NotBlank
-    private String username;
-
-    @NotBlank
-    private String password;
+    private String newPassword;
 
 }
