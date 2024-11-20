@@ -1,14 +1,30 @@
 package com.api.AntiCorruptionAPI.Models;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
+/**
+ * DTO (Data Transfer Object) для передачи данных отчета с дополнительной информацией.
+ * <p>
+ * Используется для более гибкой передачи данных между слоями приложения,
+ * включая дополнительную информацию о назначенном сотруднике.
+ */
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ReportDTO extends Report {
-    private String assignedToFullName; // Для хранения ФИО сотрудника
+    /**
+     * ФИО сотрудника, ответственного за обработку сообщения.
+     */
+    private String assignedToFullName;
 
-    // Конструктор
+    /**
+     * Конструктор для создания DTO из сущности Report.
+     *
+     * @param report             исходный отчет
+     * @param assignedToFullName ФИО назначенного сотрудника
+     */
     public ReportDTO(Report report, String assignedToFullName) {
         // Копирование всех полей из report
         setId(report.getId());

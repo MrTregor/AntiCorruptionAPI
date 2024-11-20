@@ -15,20 +15,46 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.security.Key;
 import java.util.Date;
 
+/**
+ * Утилитный класс для работы с JWT (JSON Web Token).
+ *
+ * Предоставляет функциональность генерации, проверки и извлечения информации из JWT-токенов.
+ * Поддерживает операции аутентификации и авторизации в приложении.
+ */
 @Component
 public class JwtUtils {
+    /**
+     * Логгер для записи информации о JWT-операциях.
+     */
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
+    /**
+     * Секретный ключ для подписи JWT-токенов.
+     */
     @Value("${app.jwtSecret}")
     private String jwtSecret;
 
+    /**
+     * Время жизни JWT-токена в миллисекундах.
+     */
     @Value("${app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
+    /**
+     * Создает криптографический ключ для подписи токенов.
+     *
+     * @return Ключ для подписи JWT
+     */
     private Key key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
+    /**
+     * Генерирует JWT-токен на основе данных аутентификации.
+     *
+     * @param authentication объект аутентификации
+     * @return сгенерированный JWT-токен
+     */
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
 
@@ -42,12 +68,23 @@ public class JwtUtils {
                 .compact();
     }
 
+    /**
+     * Извлекает имя пользователя из JWT-токена.
+     *
+     * @param token JWT-токен
+     * @return имя пользователя
+     */
     public String getUserNameFromJwtToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key()).build()
                 .parseClaimsJws(token).getBody().getSubject();
     }
 
-    // Добавляем новый метод для получения ID пользователя
+    /**
+     * Извлекает ID пользователя из JWT-токена.
+     *
+     * @param token JWT-токен
+     * @return ID пользователя или null при ошибке
+     */
     public Long getUserIdFromToken(String token) {
         try {
             Claims claims = Jwts.parserBuilder()
@@ -62,10 +99,13 @@ public class JwtUtils {
         }
     }
 
-    // Добавляем вспомогательный метод для получения текущего токена
+    /**
+     * Извлекает JWT-токен из текущего контекста запроса.
+     *
+     * @return JWT-токен или null
+     */
     public String getTokenFromContext() {
         try {
-            // This assumes you're using a filter that extracts the token from the request
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
@@ -81,7 +121,11 @@ public class JwtUtils {
         }
     }
 
-    // Добавляем удобный метод для получения ID текущего пользователя
+    /**
+     * Получает ID текущего пользователя из JWT-токена.
+     *
+     * @return ID пользователя или null
+     */
     public Long getCurrentUserId() {
         String token = getTokenFromContext();
         if (token != null) {
@@ -90,6 +134,12 @@ public class JwtUtils {
         return null;
     }
 
+    /**
+     * Проверяет валидность JWT-токена.
+     *
+     * @param authToken JWT-токен для проверки
+     * @return true, если токен валиден, иначе false
+     */
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(authToken);

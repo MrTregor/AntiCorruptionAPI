@@ -1,97 +1,273 @@
 package com.api.AntiCorruptionAPI.Models;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Date;
 
+/**
+ * Модель пользователя системы с расширенной информацией о сотруднике.
+ * <p>
+ * Содержит comprehensive информацию о личных и профессиональных данных.
+ */
+@Entity
+@Table(name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"username", "email", "employee_id"})
+        })
 @Getter
 @Setter
-@Entity
-@Table(name = "users")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User {
-    // Уникальный идентификатор пользователя в системе
+
+    /**
+     * Уникальный идентификатор пользователя.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Логин пользователя для входа в систему
-    @Column(unique = true, nullable = false)
+    /**
+     * Логин пользователя для входа в систему.
+     */
+    @Column(unique = true, nullable = false, length = 50)
     private String username;
 
-    // Хэшированный пароль пользователя
+    /**
+     * Хэшированный пароль пользователя.
+     */
     @Column(nullable = false)
     private String password;
 
-    // Группы доступа, к которым принадлежит пользователь
+    /**
+     * Группы доступа, к которым принадлежит пользователь.
+     */
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "user_groups", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "group_id"))
+    @JoinTable(
+            name = "user_groups",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
     private Set<AccessGroup> groups = new HashSet<>();
 
-    // Табельный номер сотрудника
+    /**
+     * Табельный номер сотрудника.
+     */
+    @Column(name = "employee_id", unique = true, length = 50)
     private String employeeId;
 
-    // ФИО сотрудника
+    /**
+     * Персональные данные.
+     */
+    @Column(name = "last_name", length = 100)
     private String lastName;
+
+    @Column(name = "first_name", length = 100)
     private String firstName;
+
+    @Column(name = "middle_name", length = 100)
     private String middleName;
 
-    // Персональные данные
-    private Date dateOfBirth;     // Дата рождения
-    private String gender;        // Пол
+    /**
+     * Полное имя сотрудника.
+     *
+     * @return Строка с полным именем
+     */
+    public String getFullName() {
+        return String.format("%s %s %s",
+                lastName != null ? lastName : "",
+                firstName != null ? firstName : "",
+                middleName != null ? middleName : ""
+        ).trim();
+    }
 
-    // Фотография сотрудника
+    /**
+     * Дата рождения.
+     */
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    /**
+     * Пол сотрудника.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private Gender gender;
+
+    /**
+     * Перечисление полов.
+     */
+    public enum Gender {
+        MALE, FEMALE, OTHER
+    }
+
+    /**
+     * Фотография сотрудника.
+     */
     @Lob
+    @Column(name = "photo")
     private byte[] photo;
 
-    // Паспортные данные
-    private String passportSeries;    // Серия паспорта
-    private String passportNumber;    // Номер паспорта
+    /**
+     * Паспортные данные.
+     */
+    @Column(name = "passport_series", length = 10)
+    private String passportSeries;
 
-    // Контактная информация
-    private String address;           // Адрес проживания
-    private String phoneNumber;       // Контактный телефон
-    private String email;             // Электронная почта
+    @Column(name = "passport_number", length = 20)
+    private String passportNumber;
 
-    // Информация о работе
-    private String position;          // Должность
-    private String department;        // Отдел/подразделение
-    private Date hireDate;           // Дата приема на работу
-    private String contractType;      // Тип трудового договора
-    private Double salary;            // Размер заработной платы
+    /**
+     * Контактная информация.
+     */
+    @Column(length = 500)
+    private String address;
 
-    // Образование и квалификация
-    private String education;         // Образование (уровень, учебное заведение, специальность)
-    private String workExperience;    // Опыт работы
-    private String skills;            // Профессиональные навыки и квалификации
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
 
-    // Личная информация
-    private String maritalStatus;     // Семейное положение
-    private Integer numberOfChildren; // Количество детей
-    private String militaryServiceInfo; // Данные о воинском учете
+    @Column(unique = true, length = 100)
+    private String email;
 
-    // Документы и идентификаторы
-    private String inn;               // ИНН
-    private String snils;             // СНИЛС
+    /**
+     * Информация о работе.
+     */
+    @Column(length = 100)
+    private String position;
 
-    // Профессиональное развитие
-    private String qualificationUpgrade;   // Сведения о повышении квалификации
-    private String awards;                 // Награды и поощрения
-    private String disciplinaryActions;    // Дисциплинарные взыскания
-    private String attestationResults;     // Результаты аттестаций
+    @Column(length = 100)
+    private String department;
 
-    // Дополнительная информация
-    private String medicalExamResults;     // Результаты медосмотров
-    private String bankDetails;            // Банковские реквизиты
-    private String emergencyContact;       // Контакты для экстренной связи
-    private String notes;                  // Примечания
+    @Column(name = "hire_date")
+    private LocalDate hireDate;
 
-    // Статус сотрудника
+    @Column(name = "contract_type", length = 50)
+    private String contractType;
+
+    @Column(precision = 10, scale = 2)
+    private Double salary;
+
+    /**
+     * Образование и квалификация.
+     */
+    @Column(length = 500)
+    private String education;
+
+    @Column(name = "work_experience", length = 1000)
+    private String workExperience;
+
+    @Column(length = 500)
+    private String skills;
+
+    /**
+     * Личная информация.
+     */
+    @Column(name = "marital_status", length = 50)
+    private String maritalStatus;
+
+    @Column(name = "number_of_children")
+    private Integer numberOfChildren;
+
+    @Column(name = "military_service_info", length = 500)
+    private String militaryServiceInfo;
+
+    /**
+     * Служебные документы.
+     */
+    @Column(length = 20)
+    private String inn;
+
+    @Column(length = 20)
+    private String snils;
+
+    /**
+     * Профессиональное развитие.
+     */
+    @Column(name = "qualification_upgrade", length = 1000)
+    private String qualificationUpgrade;
+
+    @Column(length = 500)
+    private String awards;
+
+    @Column(name = "disciplinary_actions", length = 1000)
+    private String disciplinaryActions;
+
+    @Column(name = "attestation_results", length = 1000)
+    private String attestationResults;
+
+    /**
+     * Дополнительная информация.
+     */
+    @Column(name = "medical_exam_results", length = 500)
+    private String medicalExamResults;
+
+    @Column(name = "bank_details", length = 500)
+    private String bankDetails;
+
+    @Column(name = "emergency_contact", length = 200)
+    private String emergencyContact;
+
+    @Column(length = 1000)
+    private String notes;
+
+    /**
+     * Статус сотрудника.
+     */
     @Column(nullable = false)
     @ColumnDefault("false")
-    private Boolean isFired;          // Признак увольнения
+    private Boolean isFired = false;
+
+    /**
+     * Дата создания записи.
+     */
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    /**
+     * Дата последнего обновления записи.
+     */
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    /**
+     * Переопределение метода toString для удобного вывода информации.
+     */
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", fullName='" + getFullName() + '\'' +
+                ", position='" + position + '\'' +
+                '}';
+    }
+
+    /**
+     * Переопределение метода equals для корректного сравнения.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return id != null && id.equals(user.id);
+    }
+
+    /**
+     * Переопределение метода hashCode.
+     */
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
 }

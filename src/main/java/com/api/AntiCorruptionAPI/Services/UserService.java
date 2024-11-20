@@ -17,6 +17,19 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Сервис для управления пользователями в системе.
+ *
+ * Предоставляет функционал для:
+ * - Получения списка пользователей
+ * - Добавления новых пользователей
+ * - Удаления пользователей
+ * - Обновления информации о пользователях
+ * - Управления группами пользователей
+ *
+ * @author Антикоррупционная команда
+ * @version 1.0
+ */
 @Service
 public class UserService {
 
@@ -25,11 +38,22 @@ public class UserService {
     private final UserRepository userRepository;
     private final AccessGroupRepository accessGroupRepository;
 
+    /**
+     * Конструктор для внедрения зависимостей репозиториев.
+     *
+     * @param userRepository Репозиторий для работы с пользователями
+     * @param accessGroupRepository Репозиторий для работы с группами доступа
+     */
     public UserService(UserRepository userRepository, AccessGroupRepository accessGroupRepository) {
         this.userRepository = userRepository;
         this.accessGroupRepository = accessGroupRepository;
     }
 
+    /**
+     * Получение списка всех пользователей в системе.
+     *
+     * @return Ответ со списком пользователей
+     */
     public ServiceResponse<List<User>> getAllUsers() {
         List<User> users = userRepository.findAll();
         return new ServiceResponse<>(
@@ -39,7 +63,14 @@ public class UserService {
         );
     }
 
-    // Метод для добавления пользователя
+    /**
+     * Добавление нового пользователя в систему.
+     *
+     * Проверяет уникальность имени пользователя перед сохранением.
+     *
+     * @param user Данные нового пользователя
+     * @return Ответ с информацией о добавленном пользователе
+     */
     public ServiceResponse<User> addUser(User user) {
         try {
             // Проверка на уникальность логина
@@ -60,7 +91,12 @@ public class UserService {
         }
     }
 
-    // Метод для удаления пользователя
+    /**
+     * Удаление пользователя по его идентификатору.
+     *
+     * @param id Идентификатор пользователя для удаления
+     * @return Ответ о результате удаления
+     */
     public ServiceResponse<Void> deleteUser(long id) {
         try {
             Optional<User> user = userRepository.findById(id);
@@ -77,6 +113,13 @@ public class UserService {
             return new ServiceResponse<>(null, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * Получение списка пользователей, принадлежащих к определенной группе.
+     *
+     * @param groupName Название группы
+     * @return Ответ со списком пользователей группы
+     */
     public ServiceResponse<List<User>> getUsersByGroup(String groupName) {
         List<User> users = userRepository.findByGroupsName(groupName);
         return new ServiceResponse<>(
@@ -85,6 +128,16 @@ public class UserService {
                 HttpStatus.OK
         );
     }
+
+    /**
+     * Обновление информации о пользователе.
+     *
+     * Поддерживает обновление различных полей, включая группы доступа.
+     *
+     * @param id Идентификатор пользователя
+     * @param userUpdateRequest Данные для обновления
+     * @return Ответ с обновленным пользователем
+     */
     public ServiceResponse<User> updateUser(long id, UserUpdateRequest userUpdateRequest) {
         try {
             // Найти пользователя по ID
@@ -139,6 +192,13 @@ public class UserService {
         }
     }
 
+    /**
+     * Добавление пользователя в группу доступа.
+     *
+     * @param userId Идентификатор пользователя
+     * @param groupId Идентификатор группы
+     * @return Ответ о результате добавления в группу
+     */
     public ServiceResponse<User> addUserToGroup(Long userId, Long groupId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));

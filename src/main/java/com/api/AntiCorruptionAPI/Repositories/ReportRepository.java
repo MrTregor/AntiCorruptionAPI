@@ -7,9 +7,19 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * Репозиторий для управления отчетами в системе.
+ * <p>
+ * Предоставляет расширенные методы для работы с отчетами.
+ */
 @Repository
 public interface ReportRepository extends JpaRepository<Report, Long>, JpaSpecificationExecutor<Report> {
+
+    /**
+     * Поиск отчетов, назначенных конкретному сотруднику.
+     *
+     * @param assignedTo идентификатор сотрудника
+     * @return список отчетов
+     */
     List<Report> findByAssignedTo(Long assignedTo);
-
-
 }

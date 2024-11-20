@@ -19,19 +19,46 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Контроллер для управления отчетами в системе противодействия коррупции.
+ *
+ * Ключевые функции:
+ * - Создание отчетов
+ * - Просмотр отчетов
+ * - Обновление статусов и решений
+ * - Фильтрация отчетов
+ *
+ * Реализует строгий контроль доступа на основе прав пользователей
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
 
+    /**
+     * Сервис для работы с отчетами.
+     */
     @Autowired
     private ReportService reportService;
 
+    /**
+     * Утилита для проверки безопасности и прав доступа.
+     */
     @Autowired
     private SecurityUtils securityUtils;
+
+    /**
+     * Сервис для работы с пользователями.
+     */
     @Autowired
     private UserService userService;
 
+    /**
+     * Создание нового отчета.
+     *
+     * @param report данные нового отчета
+     * @return созданный отчет или ошибка
+     */
     @PostMapping()
     @PreAuthorize("hasAuthority('CreateReport')")
     public ResponseEntity<ServiceResponse<Report>> createReport(@RequestBody Report report) {
@@ -39,6 +66,12 @@ public class ReportController {
         return new ResponseEntity<>(response, response.status());
     }
 
+    /**
+     * Получение отчета по идентификатору с проверкой прав доступа.
+     *
+     * @param id идентификатор отчета
+     * @return отчет или ошибка доступа
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('ViewReport')")
     public ResponseEntity<ServiceResponse<Report>> getReport(@PathVariable Long id) {
@@ -50,67 +83,130 @@ public class ReportController {
             return new ResponseEntity<>(response, response.status());
         }
 
-        // Проверяем права доступа
-        if (securityUtils.isUserInViewAllReportsGroup()) {
-            // Если пользователь может видеть все отчеты, возвращаем отчет
-            return new ResponseEntity<>(response, response.status());
-        } else {
-            // Получаем ID текущего пользователя
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
-            Long userId = userService.getUserIdByUsername(username);
-
-            // Проверяем, принадлежит ли отчет текущему пользователю
-            if (userId != null && userId.equals(response.data().getAssignedTo())) {
-                return new ResponseEntity<>(response, response.status());
-            } else {
-                // Если отчет не принадлежит пользователю, возвращаем ошибку доступа
-                return new ResponseEntity<>(
-                        new ServiceResponse<>(null, "Access denied", HttpStatus.FORBIDDEN),
-                        HttpStatus.FORBIDDEN
-                );
-            }
-        }
+        // Проверка прав доступа к отчету
+        return checkReportAccess(response);
     }
 
+    /**
+     * Получение списка всех доступных отчетов.
+     *
+     * @return список отчетов с учетом прав пользователя
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('ViewReport')")
     public ResponseEntity<ServiceResponse<List<ReportDTO>>> getAllReports() {
+        // Если пользователь может видеть все отчеты
         if (securityUtils.isUserInViewAllReportsGroup()) {
             ServiceResponse<List<ReportDTO>> response = reportService.getAllReports();
             return new ResponseEntity<>(response, response.status());
-        } else {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName();
-            Long userId = userService.getUserIdByUsername(username);
-            if (userId == null) {
-                return new ResponseEntity<>(new ServiceResponse<>(null, "User  not found", HttpStatus.NOT_FOUND), HttpStatus.NOT_FOUND);
-            }
-            ServiceResponse<List<ReportDTO>> response = reportService.getReportsByAssignedTo(userId);
-            return new ResponseEntity<>(response, response.status());
         }
+
+        // Получение отчетов для текущего пользователя
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Long userId = userService.getUserIdByUsername(username);
+
+        if (userId == null) {
+            return new ResponseEntity<>(
+                new ServiceResponse<>(null, "Пользователь не найден", HttpStatus.NOT_FOUND),
+                HttpStatus.NOT_FOUND
+            );
+        }
+
+        ServiceResponse<List<ReportDTO>> response = reportService.getReportsByAssignedTo(userId);
+        return new ResponseEntity<>(response, response.status());
     }
 
+    /**
+     * Обновление отчета с проверкой прав доступа.
+     *
+     * @param id идентификатор отчета
+     * @param report данные для обновления
+     * @return обновленный отчет или ошибка
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('UpdateReport')")
-    public ResponseEntity<ServiceResponse<Report>> updateReport(@PathVariable Long id, @RequestBody Report report) {
-        // Проверяем доступ к отчету
+    public ResponseEntity<ServiceResponse<Report>> updateReport(
+        @PathVariable Long id,
+        @RequestBody Report report
+    ) {
+        // Проверка существования отчета
         ServiceResponse<Report> existingReport = reportService.getReport(id);
         if (existingReport.data() == null) {
             return new ResponseEntity<>(existingReport, existingReport.status());
         }
 
-        if (checkAccessToAllReports(existingReport)) return new ResponseEntity<>(
-                new ServiceResponse<>(null, "Access denied", HttpStatus.FORBIDDEN),
+        // Проверка прав доступа
+        if (!checkReportUpdateAccess(existingReport)) {
+            return new ResponseEntity<>(
+                new ServiceResponse <>(null, "Доступ запрещен", HttpStatus.FORBIDDEN),
                 HttpStatus.FORBIDDEN
-        );
+            );
+        }
 
-        // Убедимся, что assignedTo не изменяется через этот метод
-        report.setAssignedTo(null);
+        // Предотвращение изменения назначенного пользователя
+        report.setAssignedTo(existingReport.data().getAssignedTo());
+
         ServiceResponse<Report> response = reportService.updateReport(id, report);
         return new ResponseEntity<>(response, response.status());
     }
 
+    /**
+     * Проверка прав доступа к отчету.
+     *
+     * @param reportResponse ответ с отчетом
+     * @return результат проверки доступа
+     */
+    private ResponseEntity<ServiceResponse<Report>> checkReportAccess(ServiceResponse<Report> reportResponse) {
+        // Если пользователь может видеть все отчеты
+        if (securityUtils.isUserInViewAllReportsGroup()) {
+            return new ResponseEntity<>(reportResponse, reportResponse.status());
+        }
+
+        // Получение ID текущего пользователя
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Long userId = userService.getUserIdByUsername(username);
+
+        // Проверка принадлежности отчета пользователю
+        if (userId != null && userId.equals(reportResponse.data().getAssignedTo())) {
+            return new ResponseEntity<>(reportResponse, reportResponse.status());
+        }
+
+        // Доступ запрещен
+        return new ResponseEntity<>(
+            new ServiceResponse<>(null, "Доступ запрещен", HttpStatus.FORBIDDEN),
+            HttpStatus.FORBIDDEN
+        );
+    }
+
+    /**
+     * Проверка возможности обновления отчета.
+     *
+     * @param existingReport существующий отчет
+     * @return true, если обновление разрешено
+     */
+    private boolean checkReportUpdateAccess(ServiceResponse<Report> existingReport) {
+        // Если пользователь может видеть все отчеты
+        if (securityUtils.isUserInViewAllReportsGroup()) {
+            return true;
+        }
+
+        // Получение ID текущего пользователя
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        Long userId = userService.getUserIdByUsername(username);
+
+        return userId != null && userId.equals(existingReport.data().getAssignedTo());
+    }
+
+    /**
+     * Обновление решения по отчету.
+     *
+     * @param id идентификатор отчета
+     * @param solution новое решение
+     * @return обновленный отчет или ошибка
+     */
     @PatchMapping("/{id}/solution")
     @PreAuthorize("hasAuthority('SolveReport')")
     public ResponseEntity<ServiceResponse<Report>> updateSolution(
@@ -132,6 +228,13 @@ public class ReportController {
         return new ResponseEntity<>(response, response.status());
     }
 
+    /**
+     * Обновление статуса отчета.
+     *
+     * @param id идентификатор отчета
+     * @param status новый статус
+     * @return обновленный отчет или ошибка
+     */
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAuthority('SolveReport')")
     public ResponseEntity<ServiceResponse<Report>> updateStatus(
@@ -153,7 +256,12 @@ public class ReportController {
         return new ResponseEntity<>(response, response.status());
     }
 
-
+    /**
+     * Удаление отчета.
+     *
+     * @param id идентификатор отчета
+     * @return ответ об успешном удалении или ошибка
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('DeleteReport')")
     public ResponseEntity<ServiceResponse<Void>> deleteReport(@PathVariable Long id) {
@@ -166,10 +274,12 @@ public class ReportController {
             );
         }
 
-        if (checkAccessToAllReports(existingReport)) return new ResponseEntity<>(
-                new ServiceResponse<>(null, "Access denied", HttpStatus.FORBIDDEN),
-                HttpStatus.FORBIDDEN
-        );
+        if (!checkReportUpdateAccess(existingReport)) {
+            return new ResponseEntity<>(
+                    new ServiceResponse<>(null, "Доступ запрещен", HttpStatus.FORBIDDEN),
+                    HttpStatus.FORBIDDEN
+            );
+        }
 
         ServiceResponse<Void> response = reportService.deleteReport(id);
         return new ResponseEntity<>(response, response.status());
@@ -186,7 +296,13 @@ public class ReportController {
         return false;
     }
 
-    // Новый метод для назначения сотрудника для обработки сообщения
+        /**
+     * Назначение сотрудника для обработки отчета.
+     *
+     * @param id идентификатор отчета
+     * @param assignedTo идентификатор сотрудника
+     * @return обновленный отчет или ошибка
+     */
     @PatchMapping("/{id}/assign")
     @PreAuthorize("hasAuthority('AssignProcessReport')")
     public ResponseEntity<ServiceResponse<Report>> assignReport(@PathVariable Long id, @RequestParam Long assignedTo) {
@@ -194,6 +310,18 @@ public class ReportController {
         return new ResponseEntity<>(response, response.status());
     }
 
+    /**
+     * Фильтрация отчетов по различным критериям.
+     *
+     * @param reporterId идентификатор репортера
+     * @param startIncidentDate дата начала инцидента
+     * @param endIncidentDate дата окончания инцидента
+     * @param incidentLocation место инцидента
+     * @param involvedPersons вовлеченные лица
+     * @param status статус отчета
+     * @param assignedTo идентификатор назначенного сотрудника
+     * @return список отфильтрованных отчетов
+     */
     @GetMapping("/filter")
     @PreAuthorize("hasAuthority('ViewReport')")
     public ResponseEntity<ServiceResponse<List<ReportDTO>>> filterReports(

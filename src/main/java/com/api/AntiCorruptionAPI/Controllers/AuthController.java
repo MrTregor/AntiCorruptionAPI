@@ -24,76 +24,187 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Контроллер аутентификации и управления пользователями.
+ * <p>
+ * Основные функции:
+ * - Аутентификация пользователей
+ * - Регистрация новых пользователей
+ * - Обновление паролей
+ * <p>
+ * Обеспечивает безопасность через JWT и контроль доступа
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    /**
+     * Логгер для записи системных событий и ошибок.
+     */
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
+    /**
+     * Менеджер аутентификации для проверки учетных данных.
+     */
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    /**
+     * Утилита для работы с JWT-токенами.
+     */
     @Autowired
     private JwtUtils jwtUtils;
 
+    /**
+     * Сервис для работы с пользовательскими данными.
+     */
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
+    /**
+     * Аутентификация пользователя.
+     *
+     * @param loginRequest запрос с учетными данными
+     * @return JWT-токен и информация о пользователе
+     */
     @PostMapping("/login")
-    public ResponseEntity<ServiceResponse<JwtResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ServiceResponse<JwtResponse>> authenticateUser(
+            @Valid @RequestBody LoginRequest loginRequest) {
         try {
+            // Аутентификация пользователя
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getUsername(),
+                            loginRequest.getPassword()
+                    )
+            );
 
+            // Установка контекста безопасности
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Генерация JWT-токена
             String jwt = jwtUtils.generateJwtToken(authentication);
 
+            // Извлечение детальной информации о пользователе
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-            JwtResponse jwtResponse = new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername());
-            return ResponseEntity.ok(new ServiceResponse<>(jwtResponse, "Authentication successful.", HttpStatus.OK));
+            // Создание JWT-ответа
+            JwtResponse jwtResponse = new JwtResponse(
+                    jwt,
+                    userDetails.getId(),
+                    userDetails.getUsername()
+            );
+
+            return ResponseEntity.ok(
+                    new ServiceResponse<>(
+                            jwtResponse,
+                            "Аутентификация успешна.",
+                            HttpStatus.OK
+                    )
+            );
         } catch (UsernameNotFoundException e) {
+            // Обработка ошибки неверных учетных данных
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ServiceResponse<>(null, "Invalid username or password.", HttpStatus.UNAUTHORIZED));
+                    .body(new ServiceResponse<>(
+                            null,
+                            "Неверное имя пользователя или пароль.",
+                            HttpStatus.UNAUTHORIZED
+                    ));
         } catch (Exception e) {
+            // Обработка неожиданных ошибок
+            logger.error("Ошибка аутентификации", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ServiceResponse<>(null, "Authentication failed. " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR));
+                    .body(new ServiceResponse<>(
+                            null,
+                            "Ошибка аутентификации: " + e.getMessage(),
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                    ));
         }
     }
 
+    /**
+     * Регистрация нового пользователя.
+     * <p>
+     * Доступно только с правом 'AddUsers'
+     *
+     * @param registerRequest данные для регистрации
+     * @return результат регистрации
+     */
     @PostMapping("/register")
     @PreAuthorize("hasAuthority('AddUsers')")
-    public ResponseEntity<ServiceResponse<String>> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<ServiceResponse<String>> registerUser(
+            @Valid @RequestBody RegisterRequest registerRequest) {
         try {
-            User newUser = userDetailsService.registerUser(registerRequest.getUsername(), registerRequest.getPassword());
-            return ResponseEntity.ok(new ServiceResponse<>("User  registered successfully: " + newUser.getUsername(), null, HttpStatus.OK));
+            // Регистрация пользователя через сервис
+            User newUser = userDetailsService.registerUser(
+                    registerRequest.getUsername(),
+                    registerRequest.getPassword()
+            );
+
+            return ResponseEntity.ok(
+                    new ServiceResponse<>(
+                            "Пользователь зарегистрирован: " + newUser.getUsername(),
+                            null,
+                            HttpStatus.OK
+                    )
+            );
         } catch (Exception e) {
+            // Обработка ошибок регистрации
+            logger.error("Ошибка регистрации", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ServiceResponse<>(null, "Error: " + e.getMessage(), HttpStatus.BAD_REQUEST));
+                    .body(new ServiceResponse<>(
+                            null,
+                            "Ошибка регистрации: " + e.getMessage(),
+                            HttpStatus.BAD_REQUEST
+                    ));
         }
     }
 
+    /**
+     * Обновление пароля пользователя.
+     * <p>
+     * Доступно только с правом 'UpdateUsers'
+     *
+     * @param userId                идентификатор пользователя
+     * @param updatePasswordRequest новый пароль
+     * @return результат обновления пароля
+     */
     @PutMapping("/update-password/{user_id}")
-    @PreAuthorize("hasAuthority('UpdateUsers')") // или другое подходящее разрешение
+    @PreAuthorize("hasAuthority('UpdateUsers')")
     public ResponseEntity<ServiceResponse<String>> updateUserPassword(
             @PathVariable("user_id") Long userId,
-            @RequestBody UpdatePasswordRequest updatePasswordRequest
+            @Valid @RequestBody UpdatePasswordRequest updatePasswordRequest
     ) {
         try {
-            ServiceResponse<String> response = userDetailsService.updateUserPassword(userId, updatePasswordRequest.getNewPassword());
+            // Обновление пароля через сервис
+            ServiceResponse<String> response = userDetailsService.updateUserPassword(
+                    userId,
+                    updatePasswordRequest.getNewPassword()
+            );
+
             return new ResponseEntity<>(response, response.status());
         } catch (ResponseStatusException e) {
-            logger.error("Failed to update user password", e);
+            // Обработка ошибок со специфическим статусом
+            logger.error("Не удалось обновить пароль", e);
             return new ResponseEntity<>(
-                    new ServiceResponse<>(null, e.getReason(), (HttpStatus) e.getStatusCode()),
+                    new ServiceResponse<>(
+                            null,
+                            e.getReason(),
+                            (HttpStatus) e.getStatusCode()
+                    ),
                     e.getStatusCode()
             );
         } catch (Exception e) {
-            logger.error("Unexpected error while updating user password", e);
+            // Обработка неожиданных ошибок
+            logger.error("Непредвиденная ошибка при обновлении пароля", e);
             return new ResponseEntity<>(
-                    new ServiceResponse<>(null, "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR),
+                    new ServiceResponse<>(
+                            null,
+                            "Произошла непредвиденная ошибка",
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                    ),
                     HttpStatus.INTERNAL_SERVER_ERROR
             );
         }
     }
-
 }

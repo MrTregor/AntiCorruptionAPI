@@ -19,6 +19,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Сервис управления отчетами о коррупционных инцидентах.
+ * <p>
+ * Обеспечивает полный цикл работы с отчетами:
+ * - Создание новых отчетов
+ * - Получение и просмотр отчетов
+ * - Обновление статусов и информации
+ * - Фильтрация и поиск отчетов
+ */
 @Service
 public class ReportService {
 
@@ -29,6 +38,12 @@ public class ReportService {
     @Autowired
     private JwtUtils jwtUtils;
 
+    /**
+     * Создание нового отчета о коррупционном инциденте.
+     *
+     * @param report Данные для создания отчета
+     * @return Ответ с созданным отчетом или ошибкой
+     */
     public ServiceResponse<Report> createReport(Report report) {
         try {
             // Получаем ID пользователя из JWT токена
@@ -48,7 +63,12 @@ public class ReportService {
         }
     }
 
-
+    /**
+     * Получение отчета по его уникальному идентификатору.
+     *
+     * @param id Идентификатор отчета
+     * @return Ответ с найденным отчетом или сообщением об ошибке
+     */
     public ServiceResponse<Report> getReport(Long id) {
         try {
             Optional<Report> report = reportRepository.findById(id);
@@ -59,6 +79,11 @@ public class ReportService {
         }
     }
 
+    /**
+     * Получение списка всех отчетов в системе.
+     *
+     * @return Ответ со списком отчетов или сообщением об ошибке
+     */
     public ServiceResponse<List<ReportDTO>> getAllReports() {
         try {
             List<Report> reports = reportRepository.findAll();
@@ -68,6 +93,13 @@ public class ReportService {
         }
     }
 
+    /**
+     * Обновление существующего отчета о коррупционном инциденте.
+     *
+     * @param id            Идентификатор отчета для обновления
+     * @param updatedReport Данные для обновления отчета
+     * @return Ответ с обновленным отчетом или сообщением об ошибке
+     */
     public ServiceResponse<Report> updateReport(Long id, Report updatedReport) {
         try {
             Optional<Report> existingReportOptional = reportRepository.findById(id);
@@ -124,6 +156,12 @@ public class ReportService {
         }
     }
 
+    /**
+     * Удаление отчета по его идентификатору.
+     *
+     * @param id Идентификатор отчета для удаления
+     * @return Ответ об успешности удаления или сообщение об ошибке
+     */
     public ServiceResponse<Void> deleteReport(Long id) {
         try {
             if (reportRepository.existsById(id)) {
@@ -137,6 +175,13 @@ public class ReportService {
         }
     }
 
+    /**
+     * Назначение ответственного сотрудника для отчета.
+     *
+     * @param id         Идентификатор отчета
+     * @param assignedTo Идентификатор сотрудника, которому назначается отчет
+     * @return Ответ с обновленным отчетом или сообщением об ошибке
+     */
     public ServiceResponse<Report> assignReport(Long id, Long assignedTo) {
         try {
             Optional<Report> existingReport = reportRepository.findById(id);
@@ -154,6 +199,12 @@ public class ReportService {
         }
     }
 
+    /**
+     * Получение списка отчетов, назначенных конкретному сотруднику.
+     *
+     * @param assignedTo Идентификатор сотрудника
+     * @return Список отчетов, назначенных сотруднику
+     */
     public ServiceResponse<List<ReportDTO>> getReportsByAssignedTo(Long assignedTo) {
         try {
             List<ReportDTO> reportDTOs = reportRepository.findByAssignedTo(assignedTo).stream()
