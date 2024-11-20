@@ -10,9 +10,6 @@ import lombok.*;
  */
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class ReportDTO extends Report {
     /**
      * ФИО сотрудника, ответственного за обработку сообщения.

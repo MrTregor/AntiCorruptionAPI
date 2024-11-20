@@ -2,20 +2,15 @@ package com.api.AntiCorruptionAPI.Requests;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.io.Serializable;
 
 /**
  * Запрос на добавление пользователя в группу доступа.
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@Setter
 public class AddToGroupRequest implements Serializable {
 
     /**
@@ -31,14 +26,4 @@ public class AddToGroupRequest implements Serializable {
     @NotNull(message = "Идентификатор группы не может быть пустым")
     @Positive(message = "Идентификатор группы должен быть положительным числом")
     private Long groupId;
-
-    /**
-     * Проверка валидности запроса.
-     *
-     * @return true, если запрос корректен
-     */
-    public boolean isValid() {
-        return userId != null && userId > 0 &&
-                groupId != null && groupId > 0;
-    }
 }
