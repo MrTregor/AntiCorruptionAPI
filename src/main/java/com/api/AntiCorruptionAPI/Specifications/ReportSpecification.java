@@ -59,20 +59,34 @@ public class ReportSpecification {
                 predicates.add(criteriaBuilder.between(root.get("incidentDate"), startIncidentDate, endIncidentDate));
             }
 
-            // Фильтр по местоположению инцидента (нечувствительный к регистру)
+            // Фильтр по местоположению инцидента с нечетким поиском
             if (incidentLocation != null && !incidentLocation.isEmpty()) {
-                predicates.add(criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("incidentLocation")),
-                        "%" + incidentLocation.toLowerCase() + "%"
-                ));
+                String[] locationParts = incidentLocation.toLowerCase().split("\\s+");
+                Predicate[] locationPredicates = new Predicate[locationParts.length];
+
+                for (int i = 0; i < locationParts.length; i++) {
+                    locationPredicates[i] = criteriaBuilder.like(
+                            criteriaBuilder.lower(root.get("incidentLocation")),
+                            "%" + locationParts[i] + "%"
+                    );
+                }
+
+                predicates.add(criteriaBuilder.and(locationPredicates));
             }
 
-            // Фильтр по вовлеченным лицам (нечувствительный к регистру)
+            // Фильтр по вовлеченным лицам с нечетким поиском
             if (involvedPersons != null && !involvedPersons.isEmpty()) {
-                predicates.add(criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("involvedPersons")),
-                        "%" + involvedPersons.toLowerCase() + "%"
-                ));
+                String[] personParts = involvedPersons.toLowerCase().split("\\s+");
+                Predicate[] personPredicates = new Predicate[personParts.length];
+
+                for (int i = 0; i < personParts.length; i++) {
+                    personPredicates[i] = criteriaBuilder.like(
+                            criteriaBuilder.lower(root.get("involvedPersons")),
+                            "%" + personParts[i] + "%"
+                    );
+                }
+
+                predicates.add(criteriaBuilder.and(personPredicates));
             }
 
             // Фильтр по статусу отчета
